@@ -22,6 +22,8 @@ def is_custom_op_supported(op_name: str) -> bool:
     op, overloads = torch._C._jit_get_operation(op_name)
     return op is not None
 
+from vllm.lowering_utils import vllm_lib, register_vllm_lowering
+
 
 # activation ops
 def silu_and_mul(out: torch.Tensor, x: torch.Tensor) -> None:
@@ -42,15 +44,6 @@ def gelu_fast(out: torch.Tensor, x: torch.Tensor) -> None:
 
 def gelu_new(out: torch.Tensor, x: torch.Tensor) -> None:
     torch.ops._C.gelu_new(out, x)
-
-
-#def cutlass_gemm_dq(
-#        x_q: torch.Tensor,
-#        w_q: torch.Tensor,
-#        dtype: str, #torch.dtype,
-#        static_scales: torch.Tensor,
-#        activation_scales: Optional[torch.Tensor] = None) -> torch.Tensor:
-#    return vllm_ops.cutlass_gemm_dq(x_q, w_q, dtype, static_scales, activation_scales)
 
 
 # page attention ops
