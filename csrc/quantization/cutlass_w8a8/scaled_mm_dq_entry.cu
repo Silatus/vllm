@@ -73,5 +73,5 @@ void cutlass_scaled_mm_dq(torch::Tensor& c, torch::Tensor const& a,
     cutlass_scaled_mm_dq_sm75(c, a, b, a_scales, b_scales);
   }
 
-  return c;
+  //return c;
 }
