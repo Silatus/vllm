@@ -140,6 +140,7 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "                     Tensor b, Tensor a_scales,"
       "                     Tensor b_scales) -> ()");
   ops.impl("cutlass_scaled_mm_dq", torch::kCUDA, &cutlass_scaled_mm_dq);
+  //ops.impl("cutlass_scaled_mm_dq", torch::kMeta, &cutlass_scaled_mm_dq_meta);
 #endif
 
   // Quantized GEMM for GPTQ.
@@ -181,6 +182,11 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "static_scaled_int8_quant(Tensor! out, Tensor input, Tensor scale) -> "
       "()");
   ops.impl("static_scaled_int8_quant", torch::kCUDA, &static_scaled_int8_quant);
+#if 0
+  ops.impl("static_scaled_int8_quant",
+             torch::kMeta,
+             &static_scaled_int8_quant_meta);
+#endif
 
   // Compute int8 quantized tensor and scaling factor
   ops.def(

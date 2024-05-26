@@ -91,15 +91,15 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
             "ignore_warning": True
         })
 
-    def apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
+    def _apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
         weight = layer.weight
         weight_scale = layer.weight_scale
         act_scale = layer.input_scale
 
-        print(f"x = {x.dtype}, {x.size()}, {x.layout}")
-        print(f"x_scale = {act_scale.dtype}, {act_scale.size()}, {act_scale.device}, {act_scale.layout}")
-        print(f"w = {weight.t().dtype}, {weight.t().size()}, {weight.t().device}, {weight.t().layout}")
-        print(f"w_scale = {weight_scale.dtype}, {weight_scale.size()}, {weight_scale.device}, {weight_scale.layout}")
+        #print(f"x = {x.dtype}, {x.size()}, {x.layout}")
+        #print(f"x_scale = {act_scale.dtype}, {act_scale.size()}, {act_scale.device}, {act_scale.layout}")
+        #print(f"w = {weight.t().dtype}, {weight.t().size()}, {weight.t().device}, {weight.t().layout}")
+        #print(f"w_scale = {weight_scale.dtype}, {weight_scale.size()}, {weight_scale.device}, {weight_scale.layout}")
 
         # Input quantize
         x_q, _ = custom_ops.scaled_int8_quant(x, act_scale)
@@ -107,7 +107,7 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
         return custom_ops.cutlass_scaled_mm_dq(x_q, weight.t(), act_scale,
                                                weight_scale, x.dtype)
 
-    def _apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
+    def apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
         weight = layer.weight.t()
         weight_scale = layer.weight_scale
 
