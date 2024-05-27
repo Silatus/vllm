@@ -4,7 +4,6 @@ from typing import Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from vllm import _custom_ops as ops
 from vllm.model_executor.custom_op import CustomOp
 
 
@@ -52,69 +51,23 @@ class RMSNorm(CustomOp):
         from vllm import _custom_ops as ops
 
         if residual is not None:
-            return torch.ops.vllm.fused_add_rms_norm(
+            ops.fused_add_rms_norm(
                 x,
                 residual,
                 self.weight.data,
                 self.variance_epsilon,
             )
+            return x, residual
         out = torch.empty_like(x)
-        return torch.ops.vllm.rms_norm(
+        ops.rms_norm(
             out,
             x,
             self.weight.data,
             self.variance_epsilon,
         )
+        return out
 
     def extra_repr(self) -> str:
         s = f"hidden_size={self.weight.data.size(0)}"
         s += f", eps={self.variance_epsilon}"
         return s
-
-
-# needed for compile
-vllm_lib.define(
-    "rms_norm(Tensor out, Tensor input, Tensor weight, float epsilon) -> Tensor"
-)
-
-
-@torch.library.impl(vllm_lib, "rms_norm", "Meta")
-def _rms_norm_meta(out, input, weight, epsilon):
-    return out
-
-
-@torch.library.impl(vllm_lib, "rms_norm", "CUDA")
-def _rms_norm(out, input, weight, epsilon):
-    ops.rms_norm(
-        out,
-        input,
-        weight,
-        epsilon,
-    )
-    return out
-
-
-register_vllm_lowering(torch.ops.vllm.rms_norm, [0])
-
-vllm_lib.define(
-    "fused_add_rms_norm(Tensor input, Tensor residual, Tensor weight, float epsilon) -> (Tensor, Tensor)"
-)
-
-
-@torch.library.impl(vllm_lib, "fused_add_rms_norm", "Meta")
-def _fused_add_rms_norm_meta(input, residual, weight, epsilon):
-    return input, residual
-
-
-@torch.library.impl(vllm_lib, "fused_add_rms_norm", "CUDA")
-def _fused_add_rms_norm(input, residual, weight, epsilon):
-    ops.fused_add_rms_norm(
-        input,
-        residual,
-        weight,
-        epsilon,
-    )
-    return input, residual
-
-
-register_vllm_lowering(torch.ops.vllm.fused_add_rms_norm, [0, 1])
