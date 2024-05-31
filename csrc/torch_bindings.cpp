@@ -16,6 +16,11 @@
 // https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md#annotations
 
 TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
+  ops.def("float_scalar", &float_scalar);
+  ops.impl("float_scalar", torch::kCUDA, &float_scalar);
+  ops.impl("float_scalar", torch::kCPU, &float_scalar);
+  ops.impl("float_scalar", torch::kMeta, &float_scalar_meta);
+
   // vLLM custom ops
 
   // Attention ops
@@ -32,6 +37,7 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "    int blocksparse_vert_stride, int blocksparse_block_size,"
       "    int blocksparse_head_sliding_step) -> ()");
   ops.impl("paged_attention_v1", torch::kCUDA, &paged_attention_v1);
+  //ops.impl("paged_attention_v1", torch::kMeta, &meta_fn<0, decltype(paged_attention_v1)>::fn);
 
   // PagedAttention V2.
   ops.def(
@@ -46,27 +52,33 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "    int blocksparse_vert_stride, int blocksparse_block_size,"
       "    int blocksparse_head_sliding_step) -> ()");
   ops.impl("paged_attention_v2", torch::kCUDA, &paged_attention_v2);
+  //ops.impl("paged_attention_v2", torch::kMeta, &meta_fn<0, decltype(paged_attention_v2)>::fn);
 
   // Activation ops
   // Activation function used in SwiGLU.
   ops.def("silu_and_mul(Tensor! out, Tensor input) -> ()");
   ops.impl("silu_and_mul", torch::kCUDA, &silu_and_mul);
+  //ops.impl("silu_and_mul", torch::kMeta, &meta_fn<0, decltype(silu_and_mul)>::fn);
 
   // Activation function used in GeGLU with `none` approximation.
   ops.def("gelu_and_mul(Tensor! out, Tensor input) -> ()");
   ops.impl("gelu_and_mul", torch::kCUDA, &gelu_and_mul);
+  //ops.impl("gelu_and_mul", torch::kMeta, &meta_fn<0, decltype(gelu_and_mul)>::fn);
 
   // Activation function used in GeGLU with `tanh` approximation.
   ops.def("gelu_tanh_and_mul(Tensor! out, Tensor input) -> ()");
   ops.impl("gelu_tanh_and_mul", torch::kCUDA, &gelu_tanh_and_mul);
+  //ops.impl("gelu_tanh_and_mul", torch::kMeta, &meta_fn<0, decltype(gelu_tanh_and_mul)>::fn);
 
   // GELU implementation used in GPT-2.
   ops.def("gelu_new(Tensor! out, Tensor input) -> ()");
   ops.impl("gelu_new", torch::kCUDA, &gelu_new);
+  //ops.impl("gelu_new", torch::kMeta, &meta_fn<0, decltype(gelu_new)>::fn);
 
   // Approximate GELU implementation.
   ops.def("gelu_fast(Tensor! out, Tensor input) -> ()");
   ops.impl("gelu_fast", torch::kCUDA, &gelu_fast);
+  //ops.impl("gelu_fast", torch::kMeta, &meta_fn<0, decltype(gelu_fast)>::fn);
 
   // Layernorm
   // Apply Root Mean Square (RMS) Normalization to the input tensor.
@@ -74,12 +86,14 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "rms_norm(Tensor! out, Tensor input, Tensor weight, float epsilon) -> "
       "()");
   ops.impl("rms_norm", torch::kCUDA, &rms_norm);
+  //ops.impl("rms_norm", torch::kMeta, &meta_fn<0, decltype(rms_norm)>::fn);
 
   // In-place fused Add and RMS Normalization.
   ops.def(
       "fused_add_rms_norm(Tensor! input, Tensor! residual, Tensor weight, "
       "float epsilon) -> ()");
   ops.impl("fused_add_rms_norm", torch::kCUDA, &fused_add_rms_norm);
+  //ops.impl("fused_add_rms_norm", torch::kMeta, &meta_fn<0, decltype(fused_add_rms_norm)>::fn);
 
   // Rotary embedding
   // Apply GPT-NeoX or GPT-J style rotary embedding to query and key.
@@ -140,7 +154,24 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "                     Tensor b, Tensor a_scales,"
       "                     Tensor b_scales) -> ()");
   ops.impl("cutlass_scaled_mm_dq", torch::kCUDA, &cutlass_scaled_mm_dq);
-  //ops.impl("cutlass_scaled_mm_dq", torch::kMeta, &cutlass_scaled_mm_dq_meta);
+#if 1
+  ops.impl("cutlass_scaled_mm_dq", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq)>::fn);
+#endif
+#endif
+
+  def(ops, "cutlass_scaled_mm_dq_tt", &cutlass_scaled_mm_dq_tt, {0});  //???
+  def(ops, "cutlass_scaled_mm_dq_ts", &cutlass_scaled_mm_dq_ts, {0});  //???
+  def(ops, "cutlass_scaled_mm_dq_st", &cutlass_scaled_mm_dq_st, {0});  //???
+  def(ops, "cutlass_scaled_mm_dq_ss", &cutlass_scaled_mm_dq_ss, {0});  //???
+  ops.impl("cutlass_scaled_mm_dq_tt", torch::kCUDA, &cutlass_scaled_mm_dq_tt);
+  ops.impl("cutlass_scaled_mm_dq_ts", torch::kCUDA, &cutlass_scaled_mm_dq_ts);
+  ops.impl("cutlass_scaled_mm_dq_st", torch::kCUDA, &cutlass_scaled_mm_dq_st);
+  ops.impl("cutlass_scaled_mm_dq_ss", torch::kCUDA, &cutlass_scaled_mm_dq_ss);
+#if 1
+  ops.impl("cutlass_scaled_mm_dq_tt", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_tt)>::fn);
+  ops.impl("cutlass_scaled_mm_dq_ts", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_ts)>::fn);
+  ops.impl("cutlass_scaled_mm_dq_st", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_st)>::fn);
+  ops.impl("cutlass_scaled_mm_dq_ss", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_ss)>::fn);
 #endif
 
   // Quantized GEMM for GPTQ.
@@ -182,10 +213,11 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "static_scaled_int8_quant(Tensor! out, Tensor input, Tensor scale) -> "
       "()");
   ops.impl("static_scaled_int8_quant", torch::kCUDA, &static_scaled_int8_quant);
+  //ops.impl("static_scaled_int8_quant", torch::kCPU, &static_scaled_int8_quant);
 #if 0
   ops.impl("static_scaled_int8_quant",
-             torch::kMeta,
-             &static_scaled_int8_quant_meta);
+           torch::kMeta,
+           &meta_fn<0, decltype(static_scaled_int8_quant)>::fn);
 #endif
 
   // Compute int8 quantized tensor and scaling factor
