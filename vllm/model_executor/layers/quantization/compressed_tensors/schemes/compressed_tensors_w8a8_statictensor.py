@@ -94,8 +94,7 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
     def apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
         weight = layer.weight
         weight_scale = layer.weight_scale
-        act_scales = layer.input_scale
-        act_scale = torch.ops._C.float_scalar(act_scales)
+        act_scale = layer.input_scale
 
         #print(f"x = {x.dtype}, {x.size()}, {x.layout}")
         #print(f"x_scale = {act_scale.dtype}, {act_scale.size()}, {act_scale.device}, {act_scale.layout}")
@@ -105,7 +104,7 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
         # Input quantize
         x_q, _ = custom_ops.scaled_int8_quant(x, act_scale)
 
-        return custom_ops.cutlass_scaled_mm_dq(x_q, weight.t(), act_scales,
+        return custom_ops.cutlass_scaled_mm_dq(x_q, weight.t(), act_scale,
                                                weight_scale, x.dtype)
 
     # Naive implementation, pattern match + replace w/custom torch.compile backend.

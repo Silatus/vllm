@@ -16,11 +16,6 @@
 // https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md#annotations
 
 TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
-  ops.def("float_scalar", &float_scalar);
-  ops.impl("float_scalar", torch::kCUDA, &float_scalar);
-  ops.impl("float_scalar", torch::kCPU, &float_scalar);
-  ops.impl("float_scalar", torch::kMeta, &float_scalar_meta);
-
   // vLLM custom ops
 
   // Attention ops
@@ -145,36 +140,6 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
       "                     Tensor b, Tensor a_scales,"
       "                     Tensor b_scales) -> ()");
   ops.impl("cutlass_scaled_mm_dq", torch::kCUDA, &cutlass_scaled_mm_dq);
-  #if 0
-  ops.impl("cutlass_scaled_mm_dq", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq)>::fn);
-  #endif
-#endif
-
-  ops.def(
-      "cutlass_scaled_mm_dq_tt(Tensor! out, Tensor a,"
-      "                     Tensor b, Tensor a_scales,"
-      "                     Tensor b_scales) -> ()");
-  ops.def(
-      "cutlass_scaled_mm_dq_ts(Tensor! out, Tensor a,"
-      "                     Tensor b, Tensor a_scales,"
-      "                     float b_scales) -> ()");
-  ops.def(
-      "cutlass_scaled_mm_dq_st(Tensor! out, Tensor a,"
-      "                     Tensor b, float a_scales,"
-      "                     Tensor b_scales) -> ()");
-  ops.def(
-      "cutlass_scaled_mm_dq_ss(Tensor! out, Tensor a,"
-      "                    Tensor b, float a_scales,"
-      "                     float b_scales) -> ()");
-  ops.impl("cutlass_scaled_mm_dq_tt", torch::kCUDA, &cutlass_scaled_mm_dq_tt);
-  ops.impl("cutlass_scaled_mm_dq_ts", torch::kCUDA, &cutlass_scaled_mm_dq_ts);
-  ops.impl("cutlass_scaled_mm_dq_st", torch::kCUDA, &cutlass_scaled_mm_dq_st);
-  ops.impl("cutlass_scaled_mm_dq_ss", torch::kCUDA, &cutlass_scaled_mm_dq_ss);
-#if 0
-  ops.impl("cutlass_scaled_mm_dq_tt", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_tt)>::fn);
-  ops.impl("cutlass_scaled_mm_dq_ts", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_ts)>::fn);
-  ops.impl("cutlass_scaled_mm_dq_st", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_st)>::fn);
-  ops.impl("cutlass_scaled_mm_dq_ss", torch::kMeta, &meta_fn<0, decltype(cutlass_scaled_mm_dq_ss)>::fn);
 #endif
 
   // Quantized GEMM for GPTQ.
@@ -319,6 +284,6 @@ TORCH_LIBRARY_EXPAND(CONCAT(TORCH_EXTENSION_NAME, _custom_ar), custom_ar) {
   custom_ar.impl("register_graph_buffers", torch::kCPU,
                  &register_graph_buffers);
 }
-  #endif
+#endif
 
 REGISTER_EXTENSION(TORCH_EXTENSION_NAME)

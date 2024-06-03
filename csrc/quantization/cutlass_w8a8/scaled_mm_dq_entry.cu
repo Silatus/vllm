@@ -25,11 +25,9 @@ void cutlass_scaled_mm_dq_sm90(torch::Tensor& c, torch::Tensor const& a,
                                torch::Tensor const& b_scales);
 #endif
 
-/*void*/ torch::Tensor cutlass_scaled_mm_dq(torch::Tensor& c,
-                                            torch::Tensor const& a,
-                                            torch::Tensor const& b,
-                                            torch::Tensor const& a_scales,
-                                            torch::Tensor const& b_scales) {
+void cutlass_scaled_mm_dq(torch::Tensor& c, torch::Tensor const& a,
+                          torch::Tensor const& b, torch::Tensor const& a_scales,
+                          torch::Tensor const& b_scales) {
   int32_t major_capability;
   int32_t minor_capability;
   cudaDeviceGetAttribute(&major_capability, cudaDevAttrComputeCapabilityMajor,
@@ -74,38 +72,4 @@ void cutlass_scaled_mm_dq_sm90(torch::Tensor& c, torch::Tensor const& a,
     TORCH_CHECK(version_num >= 75);
     cutlass_scaled_mm_dq_sm75(c, a, b, a_scales, b_scales);
   }
-
-  return c;
-}
-
-torch::Tensor cutlass_scaled_mm_dq_tt(torch::Tensor& c, torch::Tensor const& a,
-                                      torch::Tensor const& b,
-                                      torch::Tensor const& a_scales,
-                                      torch::Tensor const& b_scales) {
-  return cutlass_scaled_mm_dq(c, a, b, a_scales, b_scales);
-}
-
-torch::Tensor cutlass_scaled_mm_dq_st(torch::Tensor& c, torch::Tensor const& a,
-                                      torch::Tensor const& b,
-                                      double a_scale,
-                                      torch::Tensor const& b_scales) {
-  auto a_scales = torch::full({1}, a_scale);
-  return cutlass_scaled_mm_dq(c, a, b, a_scales, b_scales);
-}
-
-torch::Tensor cutlass_scaled_mm_dq_ts(torch::Tensor& c, torch::Tensor const& a,
-                                      torch::Tensor const& b,
-                                      torch::Tensor const& a_scales,
-                                      double b_scale) {
-  auto b_scales = torch::full({1}, b_scale);
-  return cutlass_scaled_mm_dq(c, a, b, a_scales, b_scales);
-}
-
-torch::Tensor cutlass_scaled_mm_dq_ss(torch::Tensor& c, torch::Tensor const& a,
-                                      torch::Tensor const& b,
-                                      double a_scale,
-                                      double b_scale) {
-  auto a_scales = torch::full({1}, a_scale);
-  auto b_scales = torch::full({1}, b_scale);
-  return cutlass_scaled_mm_dq(c, a, b, a_scales, b_scales);
 }
