@@ -38,6 +38,9 @@ class SiluAndMul(CustomOp):
             ops.silu_and_mul(out, x)
             return out
 
+torch.library.define("SiluAndMul::forward(Tensor x) -> Tensor")
+torch.library.impl("SiluAndMul::forward", SiluAndMul.forward_cpu, "CPU")
+torch.library.impl("SiluAndMul::forward", SiluAndMul.forward_cuda, "CUDA")
 
 class GeluAndMul(CustomOp):
     """An activation function for GeGLU.
