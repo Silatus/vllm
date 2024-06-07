@@ -38,6 +38,15 @@ void cutlass_scaled_mm_dq(torch::Tensor& c, torch::Tensor const& a,
 
   // Checks for conformality
   TORCH_CHECK(a.dim() == 2 && b.dim() == 2 && c.dim() == 2);
+#if 0
+  if (!(c.size(0) == a.size(0) && a.size(1) == b.size(0) &&
+        b.size(1) == c.size(1)))
+  {
+      std::cout << "a: " << a.size(0) << ", " << a.size(1) << std::endl;
+      std::cout << "b: " << b.size(0) << ", " << b.size(1) << std::endl;
+      std::cout << "c: " << c.size(0) << ", " << c.size(1) << std::endl;
+  }
+#endif
   TORCH_CHECK(c.size(0) == a.size(0) && a.size(1) == b.size(0) &&
               b.size(1) == c.size(1));
   TORCH_CHECK(a_scales.numel() == 1 || a_scales.numel() == a.size(0));

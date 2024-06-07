@@ -51,6 +51,11 @@ from vllm.utils import is_hip, print_warning_once
 
 from vllm.ex.ex import backend, make_backend
 
+from vllm.logger import init_logger
+
+logger = init_logger(__name__)
+
+
 class LlamaMLP(nn.Module):
 
     def __init__(
@@ -274,6 +279,7 @@ class LlamaModel(nn.Module):
     def get_input_embeddings(self, input_ids: torch.Tensor) -> torch.Tensor:
         return self.embed_tokens(input_ids)
 
+    #@torch.compile(backend='cudagraphs')
     def forward(
         self,
         input_ids: Optional[torch.Tensor],
@@ -282,6 +288,7 @@ class LlamaModel(nn.Module):
         attn_metadata: AttentionMetadata,
         inputs_embeds: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        logger.debug("LlamaModel")
         if inputs_embeds is not None:
             hidden_states = inputs_embeds
         else:
@@ -365,6 +372,7 @@ class LlamaForCausalLM(nn.Module):
                                                 config.vocab_size, logit_scale)
         self.sampler = Sampler()
 
+    #@torch.compile(backend='cudagraphs')
     def forward(
         self,
         input_ids: torch.Tensor,
@@ -372,6 +380,7 @@ class LlamaForCausalLM(nn.Module):
         kv_caches: List[torch.Tensor],
         attn_metadata: AttentionMetadata,
     ) -> torch.Tensor:
+        logger.debug("LlamaForCausalLM")
         hidden_states = self.model(input_ids, positions, kv_caches,
                                    attn_metadata)
         return hidden_states
