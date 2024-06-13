@@ -82,7 +82,7 @@ class LlamaMLP(nn.Module):
         self.act_fn = SiluAndMul()
 
     #@torch.compile(backend=make_backend(backend='inductor'))
-    @torch.compile(backend=make_backend(backend=None))
+    #@torch.compile(backend=make_backend(backend=None))
     def forward(self, x):
         gate_up, _ = self.gate_up_proj(x)
         x = self.act_fn(gate_up)
@@ -279,10 +279,10 @@ class LlamaModel(nn.Module):
         return self.embed_tokens(input_ids)
 
     #@torch.compile(backend='cudagraphs')
-    #@torch.compile(backend=make_backend(backend=None))
     #@torch.compile(backend=make_backend(backend='inductor'))
     #@torch.compile(backend='inductor')
     #@torch.compile
+    @torch.compile(backend=make_backend(backend=None), fullgraph=True)
     def forward(
         self,
         input_ids: Optional[torch.Tensor],
@@ -291,7 +291,6 @@ class LlamaModel(nn.Module):
         attn_metadata: AttentionMetadata,
         inputs_embeds: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        logger.debug("LlamaModel")
         if inputs_embeds is not None:
             hidden_states = inputs_embeds
         else:
@@ -376,10 +375,10 @@ class LlamaForCausalLM(nn.Module):
         self.sampler = Sampler()
 
     #@torch.compile(backend='cudagraphs')
-    #@torch.compile(backend=make_backend(backend=None))
     #@torch.compile(backend=make_backend(backend='inductor'))
     #@torch.compile(backend='inductor')
     #@torch.compile
+    @torch.compile(backend=make_backend(backend=None), fullgraph=True)
     def forward(
         self,
         input_ids: torch.Tensor,
@@ -387,7 +386,6 @@ class LlamaForCausalLM(nn.Module):
         kv_caches: List[torch.Tensor],
         attn_metadata: AttentionMetadata,
     ) -> torch.Tensor:
-        logger.debug("LlamaForCausalLM")
         hidden_states = self.model(input_ids, positions, kv_caches,
                                    attn_metadata)
         return hidden_states

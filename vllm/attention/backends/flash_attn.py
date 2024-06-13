@@ -10,6 +10,97 @@ from vllm.attention.backends.abstract import (AttentionBackend, AttentionImpl,
                                               AttentionMetadata)
 
 
+torch.library.define("vllm::flash_attn_varlen_func", "(Tensor q, Tensor k, Tensor v, Tensor cu_seqlens_q, Tensor cu_seqlens_k, int max_seqlen_q, int max_seqlen_k, float softmax_scale, bool causal, (int, int) window_size, float[]? alibi_slopes, Tensor(a!) out) -> Tensor(a!)")
+torch.library.define("vllm::flash_attn_with_kvcache", "(Tensor q, Tensor k, Tensor v, Tensor block_table, Tensor cache_seqlens, float softmax_scale, bool causal, float[]? alibi_slopes, Tensor(a!) out) -> Tensor(a!)")
+
+@torch.library.impl("vllm::flash_attn_varlen_func", "cuda")
+def _flash_attn_varlen_func(
+        q,
+        k,
+        v,
+        cu_seqlens_q,
+        cu_seqlens_k,
+        max_seqlen_q,
+        max_seqlen_k,
+        softmax_scale,
+        causal,
+        window_size,
+        alibi_slopes,
+        out,
+):
+    flash_attn_varlen_func(
+        q=q,
+        k=k,
+        v=v,
+        cu_seqlens_q=cu_seqlens_q,
+        cu_seqlens_k=cu_seqlens_k,
+        max_seqlen_q=max_seqlen_q,
+        max_seqlen_k=max_seqlen_k,
+        softmax_scale=softmax_scale,
+        causal=causal,
+        window_size=window_size,
+        alibi_slopes=alibi_slopes,
+        out=out,
+    )
+    return out
+
+@torch.library.impl_abstract("vllm::flash_attn_varlen_func")
+def _flash_attn_varlen_func_meta(
+        q,
+        k,
+        v,
+        cu_seqlens_q,
+        cu_seqlens_k,
+        max_seqlen_q,
+        max_seqlen_k,
+        softmax_scale,
+        causal,
+        window_size,
+        alibi_slopes,
+        out,
+):
+    return out
+
+@torch.library.impl("vllm::flash_attn_with_kvcache", "cuda")
+def _flash_attn_with_kvcache(
+        decode_query,
+        key_cache,
+        value_cache,
+        block_table,
+        cache_seqlens,
+        softmax_scale,
+        causal,
+        alibi_slopes,
+        out,
+):
+    flash_attn_with_kvcache(
+        decode_query,
+        key_cache,
+        value_cache,
+        block_table=block_table,
+        cache_seqlens=cache_seqlens,
+        softmax_scale=softmax_scale,
+        causal=causal,
+        alibi_slopes=alibi_slopes,
+        out=out,
+    )
+    return out
+
+@torch.library.impl_abstract("vllm::flash_attn_with_kvcache")
+def _flash_attn_with_kvcache_meta(
+        decode_query,
+        key_cache,
+        value_cache,
+        block_table,
+        cache_seqlens,
+        softmax_scale,
+        causal,
+        alibi_slopes,
+        out,
+):
+    return out
+
+
 class FlashAttentionBackend(AttentionBackend):
 
     @staticmethod
@@ -317,7 +408,7 @@ class FlashAttentionImpl(AttentionImpl):
                 # normal attention
                 # When block_tables are not filled, it means q and k are the
                 # prompt, and they have the same length.
-                flash_attn_varlen_func(
+                output[:num_prefill_tokens] = torch.ops.vllm.flash_attn_varlen_func(
                     q=query,
                     k=key,
                     v=value,
@@ -335,7 +426,7 @@ class FlashAttentionImpl(AttentionImpl):
                 # prefix-enabled attention
                 assert prefill_meta.seq_lens is not None
                 max_seq_len = max(prefill_meta.seq_lens)
-                flash_attn_varlen_func(
+                output[:num_prefill_tokens] = torch.ops.vllm.flash_attn_varlen_func(
                     q=query,
                     k=key_cache,
                     v=value_cache,
@@ -352,7 +443,7 @@ class FlashAttentionImpl(AttentionImpl):
 
         if decode_meta := attn_metadata.decode_metadata:
             # Decoding run.
-            flash_attn_with_kvcache(
+            output[num_prefill_tokens:] = torch.ops.flash_attn_with_kvcache(
                 decode_query.unsqueeze(1),
                 key_cache,
                 value_cache,
