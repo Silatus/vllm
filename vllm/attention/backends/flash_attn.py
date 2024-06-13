@@ -443,7 +443,7 @@ class FlashAttentionImpl(AttentionImpl):
 
         if decode_meta := attn_metadata.decode_metadata:
             # Decoding run.
-            output[num_prefill_tokens:] = torch.ops.flash_attn_with_kvcache(
+            output = torch.ops.vllm.flash_attn_with_kvcache(
                 decode_query.unsqueeze(1),
                 key_cache,
                 value_cache,
@@ -452,7 +452,7 @@ class FlashAttentionImpl(AttentionImpl):
                 softmax_scale=self.scale,
                 causal=True,
                 alibi_slopes=self.alibi_slopes,
-                out=output[num_prefill_tokens:].unsqueeze(1),
+                out=output[num_prefill_tokens:].unsqueeze(1)
             )
 
         # Reshape the output tensor.
