@@ -50,7 +50,7 @@ def cutlass_fp8_gemm_helper(m: int,
     if azp:
         # bias term should be > 1 so that the absolute tolerance can catch it
         bias_azp = torch.rand((m_a_scales, 1), device=device, dtype=torch.float32) + 1.0
-        out = ops.cutlass_scaled_azp_mm(a, b, scale_a, scale_b, bias_azp, out_dtype)
+        out = ops.cutlass_scaled_mm(a, b, scale_a, scale_b, out_dtype, bias_azp)
     else:
         out = ops.cutlass_scaled_mm(a, b, scale_a, scale_b, out_dtype)
         bias_azp = 0
@@ -79,7 +79,7 @@ def cutlass_int8_gemm_helper(m: int, n: int, k: int, per_token_act_quant: bool, 
     if azp:
         # bias term should be > 1 so that the absolute tolerance can catch it
         bias_azp = torch.rand((m_a_scales, 1), device=device, dtype=torch.float32) + 1.0
-        out = ops.cutlass_scaled_azp_mm(a, b, scale_a, scale_b, bias_azp, out_dtype)
+        out = ops.cutlass_scaled_mm(a, b, scale_a, scale_b, out_dtype, bias_azp)
     else:
         out = ops.cutlass_scaled_mm(a, b, scale_a, scale_b, out_dtype)
         bias_azp = 0

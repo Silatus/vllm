@@ -353,13 +353,9 @@ void cutlass_gemm_sm90_fp8_dispatch(torch::Tensor& out, torch::Tensor const& a,
   }
 }
 
-void cutlass_scaled_mm_sm90(torch::Tensor& out, torch::Tensor const& a,
-                            torch::Tensor const& b,
-                            torch::Tensor const& a_scales,
-                            torch::Tensor const& b_scales) {
-  TORCH_CHECK(a_scales.dtype() == torch::kFloat32);
-  TORCH_CHECK(b_scales.dtype() == torch::kFloat32);
-
+template <template<typename, typename, typename> typename Epilogue, typename ...EpilogueArgs>
+void cutlass_scaled_mm_sm90_epilogue(torch::Tensor& out, torch::Tensor const& a,
+                            torch::Tensor const& b, EpilogueArgs&& ...epilogue_args) {
   if (a.dtype() == torch::kInt8) {
     TORCH_CHECK(b.dtype() == torch::kInt8);
 
@@ -371,15 +367,15 @@ void cutlass_scaled_mm_sm90(torch::Tensor& out, torch::Tensor const& a,
 
     if (out.dtype() == torch::kBFloat16) {
       return cutlass_gemm_caller<cutlass_3x_gemm<
-          int8_t, cutlass::bfloat16_t, ScaledEpilogue, TileShape, ClusterShape,
-          KernelSchedule, EpilogueSchedule>>(out, a, b, a_scales, b_scales);
+          int8_t, cutlass::bfloat16_t, Epilogue, TileShape, ClusterShape,
+          KernelSchedule, EpilogueSchedule>>(out, a, b, std::forward<EpilogueArgs>(epilogue_args)...);
     } else {
       TORCH_CHECK(out.dtype() == torch::kFloat16);
 
       return cutlass_gemm_caller<
-          cutlass_3x_gemm<int8_t, cutlass::half_t, ScaledEpilogue, TileShape,
+          cutlass_3x_gemm<int8_t, cutlass::half_t, Epilogue, TileShape,
                           ClusterShape, KernelSchedule, EpilogueSchedule>>(
-          out, a, b, a_scales, b_scales);
+          out, a, b, std::forward<EpilogueArgs>(epilogue_args)...);
     }
   } else {
     TORCH_CHECK(a.dtype() == torch::kFloat8_e4m3fn);
@@ -387,62 +383,31 @@ void cutlass_scaled_mm_sm90(torch::Tensor& out, torch::Tensor const& a,
 
     if (out.dtype() == torch::kBFloat16) {
       return cutlass_gemm_sm90_fp8_dispatch<
-          cutlass::float_e4m3_t, cutlass::bfloat16_t, ScaledEpilogue>(
-          out, a, b, a_scales, b_scales);
+          cutlass::float_e4m3_t, cutlass::bfloat16_t, Epilogue>(
+          out, a, b, std::forward<EpilogueArgs>(epilogue_args)...);
     } else {
       TORCH_CHECK(out.dtype() == torch::kFloat16);
       return cutlass_gemm_sm90_fp8_dispatch<cutlass::float_e4m3_t,
-                                            cutlass::half_t, ScaledEpilogue>(
-          out, a, b, a_scales, b_scales);
+                                            cutlass::half_t, Epilogue>(
+          out, a, b, std::forward<EpilogueArgs>(epilogue_args)...);
     }
   }
 }
 
-void cutlass_scaled_azp_mm_sm90(torch::Tensor& out, torch::Tensor const& a,
-                                torch::Tensor const& b,
-                                torch::Tensor const& a_scales,
-                                torch::Tensor const& b_scales,
-                                torch::Tensor const& bias_azp) {
+void cutlass_scaled_mm_sm90(torch::Tensor& c, torch::Tensor const& a,
+                            torch::Tensor const& b,
+                            torch::Tensor const& a_scales,
+                            torch::Tensor const& b_scales,
+                            c10::optional<torch::Tensor> const& bias_azp) {
   TORCH_CHECK(a_scales.dtype() == torch::kFloat32);
   TORCH_CHECK(b_scales.dtype() == torch::kFloat32);
-  TORCH_CHECK(bias_azp.dtype() == torch::kFloat32);
-
-  if (a.dtype() == torch::kInt8) {
-    TORCH_CHECK(b.dtype() == torch::kInt8);
-
-    using TileShape = Shape<_128, _128, _128>;
-    using ClusterShape = Shape<_1, _2, _1>;
-    using KernelSchedule =
-        typename cutlass::gemm::KernelTmaWarpSpecializedPingpong;
-    using EpilogueSchedule = typename cutlass::epilogue::TmaWarpSpecialized;
-
-    if (out.dtype() == torch::kBFloat16) {
-      return cutlass_gemm_caller<cutlass_3x_gemm<
-          int8_t, cutlass::bfloat16_t, ScaledEpilogueAzp, TileShape,
-          ClusterShape, KernelSchedule, EpilogueSchedule>>(out, a, b, a_scales,
-                                                           b_scales, bias_azp);
-    } else {
-      TORCH_CHECK(out.dtype() == torch::kFloat16);
-
-      return cutlass_gemm_caller<
-          cutlass_3x_gemm<int8_t, cutlass::half_t, ScaledEpilogueAzp, TileShape,
-                          ClusterShape, KernelSchedule, EpilogueSchedule>>(
-          out, a, b, a_scales, b_scales, bias_azp);
-    }
+  if (bias_azp) {
+    TORCH_CHECK(bias_azp->dtype() == torch::kFloat32);
+    return cutlass_scaled_mm_sm90_epilogue<ScaledEpilogueAzp>(
+        c, a, b, a_scales, b_scales, *bias_azp);
   } else {
-    TORCH_CHECK(a.dtype() == torch::kFloat8_e4m3fn);
-    TORCH_CHECK(b.dtype() == torch::kFloat8_e4m3fn);
-
-    if (out.dtype() == torch::kBFloat16) {
-      return cutlass_gemm_sm90_fp8_dispatch<
-          cutlass::float_e4m3_t, cutlass::bfloat16_t, ScaledEpilogueAzp>(
-          out, a, b, a_scales, b_scales, bias_azp);
-    } else {
-      TORCH_CHECK(out.dtype() == torch::kFloat16);
-      return cutlass_gemm_sm90_fp8_dispatch<cutlass::float_e4m3_t,
-                                            cutlass::half_t, ScaledEpilogueAzp>(
-          out, a, b, a_scales, b_scales, bias_azp);
-    }
+    return cutlass_scaled_mm_sm90_epilogue<ScaledEpilogue>(c, a, b, a_scales,
+                                                           b_scales);
   }
 }
 
