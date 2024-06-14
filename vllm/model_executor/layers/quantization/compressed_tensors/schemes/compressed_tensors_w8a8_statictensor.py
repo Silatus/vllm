@@ -91,7 +91,7 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
             "ignore_warning": True
         })
 
-    def _apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
+    def apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
         weight = layer.weight
         weight_scale = layer.weight_scale
         act_scale = layer.input_scale
@@ -103,7 +103,7 @@ class CompressedTensorsW8A8StaticTensor(CompressedTensorsScheme):
                                                weight_scale, x.dtype)
 
     # Naive implementation, pattern match + replace w/custom torch.compile backend.
-    def apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
+    def _apply_weights(self, layer: torch.nn.Module, x: torch.Tensor):
         weight = layer.weight.t()
         weight_scale = layer.weight_scale
 
