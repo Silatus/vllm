@@ -138,9 +138,9 @@ struct ScaledEpilogueAzp
       cutlass::multiply_add, ElementD, float,
       cutlass::FloatRoundStyle::round_to_nearest>;
 
-  using Bias = cutlass::epilogue::fusion::Sm90ColOrScalarBroadcast<
+  using Bias = cutlass::epilogue::fusion::Sm90RowBroadcast<
       0 /*Stages*/, typename EpilogueDescriptor::TileShape, float,
-      Stride<Int<1>, Int<0>, Int<0>>>;
+      Stride<Int<0>, Int<1>, Int<0>>>;
 
  public:
   using EVTCompute =
