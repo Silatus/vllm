@@ -147,8 +147,8 @@ struct ScaledEpilogueAzp
       cutlass::multiply_add, ElementD, float,
       cutlass::FloatRoundStyle::round_to_nearest>;
 
-  using Bias = cutlass::epilogue::threadblock::VisitorColOrScalarBroadcast<
-      OutputTileThreadMap, float, Stride<Int<1>, Int<0>, Int<0>>>;
+  using Bias = cutlass::epilogue::threadblock::VisitorRowBroadcast<
+      OutputTileThreadMap, float, Stride<Int<0>, Int<1>, Int<0>>>;
 
  public:
   using EVTCompute = cutlass::epilogue::threadblock::Sm80EVT<Compute1, ScaleA,
@@ -164,7 +164,7 @@ struct ScaledEpilogueAzp
 
     ScaleBArgs b_args{b_scales.data_ptr<float>(), b_scales.numel() != 1, {}};
     ScaleAArgs a_args{a_scales.data_ptr<float>(), a_scales.numel() != 1, {}};
-    BiasArgs bias_args{bias_azp.data_ptr<float>(), bias_azp.numel() != 1, {}};
+    BiasArgs bias_args{bias_azp.data_ptr<float>(), {}};
 
     typename EVTCompute0::Arguments evt0_compute_args{b_args};
 
