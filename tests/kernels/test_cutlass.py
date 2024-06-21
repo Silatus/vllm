@@ -220,8 +220,8 @@ def test_cutlass_int8_azp():
     n = 1024
     k = 256
 
-    scale_a = torch.randn((1, 1), device="cuda", dtype=torch.float32) / 10
-    scale_b = torch.randn((1, 1), device="cuda", dtype=torch.float32) / 10
+    scale_a = torch.randn((m, 1), device="cuda", dtype=torch.float32) / 10
+    scale_b = torch.randn((1, n), device="cuda", dtype=torch.float32) / 10
 
     aq_i8 = rand_int8((m, k))
     bq_i8 = rand_int8((n, k)).t()
